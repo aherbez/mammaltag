@@ -52,6 +52,8 @@ function meshDataToThree(data: MeshData): THREE.Mesh {
   geometry.setIndex(
     new THREE.BufferAttribute(new Uint32Array(data.indices), 1),
   );
+  geometry.computeBoundingBox();
+  geometry.computeVertexNormals();
   return new THREE.Mesh(geometry, material);
 }
 
