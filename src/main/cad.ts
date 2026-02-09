@@ -247,17 +247,45 @@ export function registerCadHandlers(): void {
         (width * 0.8) / (text.length * 0.6),
         depth * 0.4,
       );
-      const fontPath = new oc.NCollection_Utf8String_4(
-        "/fonts/default.ttf",
-        -1,
-      );
-      const brepFont = new oc.StdPrs_BRepFont_2(fontPath, fontSize, 0);
+
+      // Verify the font was written to Emscripten MEMFS
+      const readBack = oc.FS.readFile("/fonts/default.ttf");
+      console.log("Font file in MEMFS, byte count:", readBack.length);
+
+      const brepFont = new oc.StdPrs_BRepFont_1();
+      const vfsPath = "/fonts/default.ttf";
+
+      // Attempt 1: plain JS string (some embind APIs accept strings directly)
+      let initOk = brepFont.Init_1(vfsPath, fontSize, 0);
+      console.log("Init_1 with plain string:", initOk);
+
+      // Attempt 2: NCollection_Utf8String
+      if (!initOk) {
+        const utfPath = new oc.NCollection_Utf8String_4(vfsPath, vfsPath.length);
+        initOk = brepFont.Init_1(utfPath, fontSize, 0);
+        console.log("Init_1 with NCollection_Utf8String:", initOk);
+        utfPath.delete();
+      }
+
+      // Attempt 3: TCollection_AsciiString (commonly accepted in OC.js)
+      if (!initOk) {
+        const asciiPath = new oc.TCollection_AsciiString_2(vfsPath);
+        initOk = brepFont.Init_1(asciiPath, fontSize, 0);
+        console.log("Init_1 with TCollection_AsciiString:", initOk);
+        asciiPath.delete();
+      }
+
+      if (!initOk) {
+        console.error("All font init attempts failed");
+      }
 
       const textBuilder = new oc.StdPrs_BRepTextBuilder();
-      const textStr = new oc.NCollection_Utf8String_4(text, -1);
+      const textStr = new oc.NCollection_Utf8String_4(text, text.length);
 
-      // Coordinate system: text lies on y = 0, readable from below
-      const penOrigin = new oc.gp_Pnt_3(0, -0.01, 0);
+      // Coordinate system: text lies well below y = 0, readable from below.
+      const offset = 0.1;
+      const engraveDepth = Math.max(height * 0.1, 0.05);
+      const penOrigin = new oc.gp_Pnt_3(0, -offset, 0);
       const penN = new oc.gp_Dir_4(0, -1, 0); // normal faces down
       const penX = new oc.gp_Dir_4(1, 0, 0); // reading direction
       const penLoc = new oc.gp_Ax3_3(penOrigin, penN, penX);
@@ -270,23 +298,44 @@ export function registerCadHandlers(): void {
         oc.Graphic3d_VerticalTextAlignment.Graphic3d_VTA_CENTER,
       );
 
-      // Extrude flat text upward into the body, then cut
-      const engraveDepth = Math.max(height * 0.05, 0.02);
-      const extrudeVec = new oc.gp_Vec_4(0, engraveDepth + 0.01, 0);
-      const extrudedText = new oc.BRepPrimAPI_MakePrism_1(
+      // Count faces in the text shape to see if it has actual geometry
+      const explorer = new oc.TopExp_Explorer_2(
         textShape,
-        extrudeVec,
-        false,
-        true,
+        oc.TopAbs_ShapeEnum.TopAbs_FACE,
+        oc.TopAbs_ShapeEnum.TopAbs_SHAPE,
       );
+      let nFaces = 0;
+      while (explorer.More()) {
+        nFaces++;
+        explorer.Next();
+      }
+      console.log("Text shape face count:", nFaces);
 
-      const textCut = new oc.BRepAlgoAPI_Cut_3(
-        myBody,
-        extrudedText.Shape(),
-        new oc.Message_ProgressRange_1(),
-      );
-      textCut.Build(new oc.Message_ProgressRange_1());
-      myBody = textCut.Shape();
+      if (nFaces > 0) {
+        // Extrude the flat text upward through the bottom face and into the body
+        const extrudeVec = new oc.gp_Vec_4(0, offset + engraveDepth, 0);
+        const extrudedText = new oc.BRepPrimAPI_MakePrism_1(
+          textShape,
+          extrudeVec,
+          false,
+          true,
+        );
+
+        const textCut = new oc.BRepAlgoAPI_Cut_3(
+          myBody,
+          extrudedText.Shape(),
+          new oc.Message_ProgressRange_1(),
+        );
+        textCut.Build(new oc.Message_ProgressRange_1());
+
+        if (textCut.HasErrors()) {
+          console.error("Text boolean cut reported errors");
+        } else {
+          myBody = textCut.Shape();
+        }
+      } else {
+        console.warn("Text shape is empty — skipping boolean cut");
+      }
     }
 
     return shapeToMesh(oc, myBody);

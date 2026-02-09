@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
-import { Button, Input, Stack } from "@mui/material";
+
+export interface TagParams {
+  width: number;
+  depth: number;
+  height: number;
+  text: string;
+}
 
 interface MeshData {
   vertices: Float32Array;
@@ -49,24 +55,39 @@ function meshDataToThree(data: MeshData): THREE.Mesh {
   return new THREE.Mesh(geometry, material);
 }
 
-export default function ThreeCanvas() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [group, setGroup] = useState<THREE.Group>();
-  const [width, setWidth] = useState<number>(1);
-  const [depth, setDepth] = useState<number>(1);
-  const [height, setHeight] = useState<number>(1);
-  const [text, setText] = useState<string>("");
+interface ThreeCanvasProps {
+  tagParams: TagParams;
+}
 
-  async function update() {
+export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [group, setGroup] = useState<THREE.Group>();
+
+  // Rebuild mesh when tagParams change (and group is ready)
+  useEffect(() => {
     if (!group) return;
 
-    setLoading(true);
-    const meshData = await window.electronAPI.buildTag(width, depth, height, text || undefined);
-    group.clear();
-    group.add(meshDataToThree(meshData));
-    setLoading(false);
-  }
+    let cancelled = false;
+
+    async function rebuild() {
+      const { width, depth, height, text } = tagParams;
+      const meshData = await window.electronAPI.buildTag(
+        width,
+        depth,
+        height,
+        text || undefined,
+      );
+      if (cancelled) return;
+      group!.clear();
+      group!.add(meshDataToThree(meshData));
+    }
+
+    rebuild();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [group, tagParams]);
 
   // Listen for "Export as STL" from the File menu
   useEffect(() => {
@@ -160,48 +181,5 @@ export default function ThreeCanvas() {
     };
   }, []);
 
-  return (
-    <div style={{ position: "absolute", inset: 0 }}>
-      <Stack direction="row">
-        <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />
-        <Stack direction="column">
-          <Input
-            defaultValue={width}
-            onChange={(event) => {
-              const v = parseFloat(event.target.value);
-              if (v) {
-                setWidth(v);
-              }
-            }}
-          />
-          <Input
-            defaultValue={depth}
-            onChange={(event) => {
-              const v = parseFloat(event.target.value);
-              if (v) {
-                setDepth(v);
-              }
-            }}
-          />
-          <Input
-            defaultValue={height}
-            onChange={(event) => {
-              const v = parseFloat(event.target.value);
-              if (v) {
-                setHeight(v);
-              }
-            }}
-          />
-          <Input
-            placeholder="Tag text"
-            defaultValue={text}
-            onChange={(event) => {
-              setText(event.target.value);
-            }}
-          />
-          <Button onClick={() => update()}>Update</Button>
-        </Stack>
-      </Stack>
-    </div>
-  );
+  return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />;
 }

@@ -1,15 +1,14 @@
+import { useState } from "react";
 import {
   CssBaseline,
   ThemeProvider,
   createTheme,
-  AppBar,
   Stack,
-  Toolbar,
   Typography,
   Box,
-  Button,
 } from "@mui/material";
-import ThreeCanvas from "./ThreeCanvas";
+import ThreeCanvas, { type TagParams } from "./ThreeCanvas";
+import Controls from "./Controls";
 
 const darkTheme = createTheme({
   palette: {
@@ -17,33 +16,22 @@ const darkTheme = createTheme({
   },
 });
 
-/*
-  <AppBar position="static">
-    <Toolbar variant="dense">
-      <Typography variant="h6">mammaltag</Typography>
-    </Toolbar>
-  </AppBar>
-*/
+const defaultParams: TagParams = { width: 1, depth: 1, height: 1, text: "" };
 
 export default function App() {
+  const [tagParams, setTagParams] = useState<TagParams>(defaultParams);
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Box sx={{ display: "flex", flexDirection: "column", height: "100vh" }}>
         <Stack direction="row" sx={{ flex: 1 }}>
           <Box sx={{ flex: 1, overflow: "hidden", position: "relative" }}>
-            <ThreeCanvas />
+            <ThreeCanvas tagParams={tagParams} />
           </Box>
           <Stack direction="column" sx={{ width: 300, p: 2, gap: 2 }}>
             <Typography variant="h6">Controls</Typography>
-            {/* Add your controls here */}
-            <Button
-              onClick={() => {
-                console.log("updating...");
-              }}
-            >
-              Update
-            </Button>
+            <Controls onUpdate={setTagParams} />
           </Stack>
         </Stack>
       </Box>
