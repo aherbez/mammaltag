@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
+import { registerCadHandlers } from './cad'
 
 
 function createWindow(): void {
@@ -21,6 +22,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  registerCadHandlers()
   createWindow()
 
   app.on('activate', () => {

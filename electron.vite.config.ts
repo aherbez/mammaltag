@@ -16,10 +16,6 @@ export default defineConfig({
     plugins: [react()],
     build: {
       outDir: 'out/renderer'
-    },
-    assetsInclude: ['**/*.wasm'],
-    optimizeDeps: {
-      exclude: ['opencascade.js']
     }
   }
 })
