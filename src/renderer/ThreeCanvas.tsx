@@ -1,82 +1,84 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { Button, Input, Stack } from "@mui/material";
+
+interface MeshData {
+  vertices: Float32Array;
+  normals: Float32Array;
+  indices: Uint32Array;
+}
 
 declare global {
   interface Window {
     electronAPI: {
       platform: string;
-      buildHelloWorld: () => Promise<Uint8Array>;
+      buildHelloWorld: () => Promise<MeshData>;
       buildTag: (
         width: number,
         depth: number,
         height: number,
-      ) => Promise<Uint8Array>;
+        text?: string,
+      ) => Promise<MeshData>;
+      onExportSTL: (callback: () => void) => () => void;
+      saveSTL: (buffer: ArrayBuffer) => Promise<boolean>;
     };
   }
 }
 
-/*
-      {loading && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1,
-            color: "white",
-            fontSize: "1.2rem",
-          }}
-        >
-          Loading OpenCascade...
-        </div>
-      )}
-*/
+const material = new THREE.MeshStandardMaterial({
+  color: 0x00aaff,
+  metalness: 0.3,
+  roughness: 0.7,
+});
+
+function meshDataToThree(data: MeshData): THREE.Mesh {
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(new Float32Array(data.vertices), 3),
+  );
+  geometry.setAttribute(
+    "normal",
+    new THREE.Float32BufferAttribute(new Float32Array(data.normals), 3),
+  );
+  geometry.setIndex(
+    new THREE.BufferAttribute(new Uint32Array(data.indices), 1),
+  );
+  return new THREE.Mesh(geometry, material);
+}
 
 export default function ThreeCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [scene, setScene] = useState<THREE.Group>();
+  const [group, setGroup] = useState<THREE.Group>();
   const [width, setWidth] = useState<number>(1);
   const [depth, setDepth] = useState<number>(1);
   const [height, setHeight] = useState<number>(1);
+  const [text, setText] = useState<string>("");
 
   async function update() {
-    if (!scene) return;
+    if (!group) return;
 
     setLoading(true);
-
-    // Request GLB from main process (OpenCascade runs there)
-    const glbData = await window.electronAPI.buildTag(width, depth, height);
-
-    // Load GLB into Three.js
-    const blob = new Blob([new Uint8Array(glbData)], {
-      type: "model/gltf-binary",
-    });
-    const url = URL.createObjectURL(blob);
-
-    const loader = new GLTFLoader();
-    loader.load(url, (gltf) => {
-      gltf.scene.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.material = new THREE.MeshStandardMaterial({
-            color: 0x00aaff,
-            metalness: 0.3,
-            roughness: 0.7,
-          });
-        }
-      });
-
-      scene.clear();
-      scene.add(gltf.scene);
-      URL.revokeObjectURL(url);
-      setLoading(false);
-    });
+    const meshData = await window.electronAPI.buildTag(width, depth, height, text || undefined);
+    group.clear();
+    group.add(meshDataToThree(meshData));
+    setLoading(false);
   }
+
+  // Listen for "Export as STL" from the File menu
+  useEffect(() => {
+    if (!group) return;
+    const handleExport = () => {
+      const exporter = new STLExporter();
+      const result = exporter.parse(group, { binary: true });
+      window.electronAPI.saveSTL(result.buffer as ArrayBuffer);
+    };
+    const cleanup = window.electronAPI.onExportSTL(handleExport);
+    return cleanup;
+  }, [group]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -121,8 +123,8 @@ export default function ThreeCanvas() {
       controls.update();
       controlsInstance = controls;
 
-      const group = new THREE.Group();
-      scene.add(group);
+      const modelGroup = new THREE.Group();
+      scene.add(modelGroup);
 
       // Start render loop (shows empty scene while OpenCascade loads)
       function animate() {
@@ -141,36 +143,7 @@ export default function ThreeCanvas() {
       window.addEventListener("resize", onResize);
       resizeHandler = onResize;
 
-      /*
-      // Request GLB from main process (OpenCascade runs there)
-      // const glbData = await window.electronAPI.buildHelloWorld();
-      const glbData = await window.electronAPI.buildTag();
-      if (cancelled) return;
-
-      // Load GLB into Three.js
-      const blob = new Blob([new Uint8Array(glbData)], {
-        type: "model/gltf-binary",
-      });
-      const url = URL.createObjectURL(blob);
-
-      const loader = new GLTFLoader();
-      loader.load(url, (gltf) => {
-        gltf.scene.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.material = new THREE.MeshStandardMaterial({
-              color: 0x00aaff,
-              metalness: 0.3,
-              roughness: 0.7,
-            });
-          }
-        });
-        scene.add(gltf.scene);
-        URL.revokeObjectURL(url);
-        
-        setLoading(false);
-      });
-      */
-      setScene(group);
+      setGroup(modelGroup);
     }
 
     init();
@@ -217,6 +190,13 @@ export default function ThreeCanvas() {
               if (v) {
                 setHeight(v);
               }
+            }}
+          />
+          <Input
+            placeholder="Tag text"
+            defaultValue={text}
+            onChange={(event) => {
+              setText(event.target.value);
             }}
           />
           <Button onClick={() => update()}>Update</Button>

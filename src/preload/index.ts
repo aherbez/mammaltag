@@ -2,12 +2,20 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
-  buildHelloWorld: (): Promise<Uint8Array> =>
+  buildHelloWorld: (): Promise<unknown> =>
     ipcRenderer.invoke("cad:build-hello-world"),
   buildTag: (
     width: number,
     depth: number,
     height: number,
-  ): Promise<Uint8Array> =>
-    ipcRenderer.invoke("cad:build-seal-tag", width, depth, height),
+    text?: string,
+  ): Promise<unknown> =>
+    ipcRenderer.invoke("cad:build-seal-tag", width, depth, height, text),
+  onExportSTL: (callback: () => void): (() => void) => {
+    ipcRenderer.removeAllListeners("export-stl");
+    ipcRenderer.on("export-stl", callback);
+    return () => ipcRenderer.removeAllListeners("export-stl");
+  },
+  saveSTL: (buffer: ArrayBuffer): Promise<boolean> =>
+    ipcRenderer.invoke("cad:save-stl", buffer),
 });

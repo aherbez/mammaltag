@@ -1,9 +1,10 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import fs from 'fs'
 import path from 'path'
 import { registerCadHandlers } from './cad'
 
 
-function createWindow(): void {
+function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 720,
@@ -19,11 +20,50 @@ function createWindow(): void {
   } else {
     win.loadFile(path.join(__dirname, '../renderer/index.html'))
   }
+
+  return win
+}
+
+function buildMenu(win: BrowserWindow): void {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Export as STL...',
+          accelerator: 'CmdOrCtrl+Shift+E',
+          click: () => win.webContents.send('export-stl')
+        },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' }
+  ]
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
 app.whenReady().then(() => {
   registerCadHandlers()
-  createWindow()
+
+  // Handle STL save requests from the renderer
+  ipcMain.handle('cad:save-stl', async (_event, buffer: ArrayBuffer) => {
+    const win = BrowserWindow.getFocusedWindow()
+    const { canceled, filePath } = await dialog.showSaveDialog(win!, {
+      title: 'Export as STL',
+      defaultPath: 'model.stl',
+      filters: [{ name: 'STL', extensions: ['stl'] }]
+    })
+    if (canceled || !filePath) return false
+    fs.writeFileSync(filePath, Buffer.from(buffer))
+    return true
+  })
+
+  const win = createWindow()
+  buildMenu(win)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
