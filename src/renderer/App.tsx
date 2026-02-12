@@ -1,11 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  Button,
   CssBaseline,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   ThemeProvider,
   createTheme,
   Stack,
   Typography,
   Box,
+  Link,
 } from "@mui/material";
 import ThreeCanvas, { type TagParams } from "./ThreeCanvas";
 import Controls from "./Controls";
@@ -27,6 +33,12 @@ const defaultParams: TagParams = {
 export default function App() {
   const [tagParams, setTagParams] = useState<TagParams>(defaultParams);
   const [loading, setLoading] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+
+  useEffect(() => {
+    return window.electronAPI.onShowAbout(() => setAboutOpen(true));
+  }, []);
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
@@ -41,6 +53,21 @@ export default function App() {
           </Stack>
         </Stack>
       </Box>
+      <Dialog open={aboutOpen} onClose={() => setAboutOpen(false)}>
+        <DialogTitle>About</DialogTitle>
+        <DialogContent>
+          <Typography>MammalTag v0.1.0</Typography>
+          <Typography variant="body2" color="text.secondary">
+            A simple tool for creating custom tags for mammal tracking.
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Created by Adrian Herbez.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAboutOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </ThemeProvider>
   );
 }

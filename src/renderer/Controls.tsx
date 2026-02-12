@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Button, Stack, TextField } from "@mui/material";
+import { Button, CircularProgress, Stack, TextField } from "@mui/material";
 import type { TagParams } from "./ThreeCanvas";
 
 interface ControlsProps {
@@ -13,7 +13,6 @@ export default function Controls({ onUpdate, loading }: ControlsProps) {
   const [height, setHeight] = useState(15);
   const [textHeight, setTextHeight] = useState(4);
   const [text, setText] = useState("foo");
-  // const [loading, setLoading] = useState(false);
 
   return (
     <Stack direction="column" spacing={2}>
@@ -69,7 +68,24 @@ export default function Controls({ onUpdate, loading }: ControlsProps) {
       >
         Update
       </Button>
-      {loading && <div>Loading...</div>}
+
+      {loading ? (
+        <Stack
+          direction="row"
+          spacing={1}
+          alignItems="center"
+          justifyContent="center"
+        >
+          <CircularProgress />
+        </Stack>
+      ) : (
+        <Button
+          variant="contained"
+          onClick={() => window.electronAPI.triggerExportSTL()}
+        >
+          Save STL
+        </Button>
+      )}
     </Stack>
   );
 }

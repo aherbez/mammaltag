@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import fs from "fs";
 import path from "path";
 import { registerCadHandlers } from "./cad";
@@ -12,6 +12,13 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("https://") || url.startsWith("http://")) {
+      shell.openExternal(url);
+    }
+    return { action: "deny" };
   });
 
   if (process.env["ELECTRON_RENDERER_URL"]) {
@@ -32,6 +39,11 @@ function buildMenu(win: BrowserWindow): void {
           label: "Export as STL...",
           accelerator: "CmdOrCtrl+Shift+E",
           click: () => win.webContents.send("export-stl"),
+        },
+        { type: "separator" },
+        {
+          label: "About",
+          click: () => win.webContents.send("show-about"),
         },
         { type: "separator" },
         { role: "quit" },

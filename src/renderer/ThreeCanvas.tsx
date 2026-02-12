@@ -30,6 +30,8 @@ declare global {
         textHeight?: number,
       ) => Promise<MeshData>;
       onExportSTL: (callback: () => void) => () => void;
+      onShowAbout: (callback: () => void) => () => void;
+      triggerExportSTL: () => void;
       saveSTL: (buffer: ArrayBuffer) => Promise<boolean>;
     };
   }
