@@ -29,9 +29,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("show-about", callback);
     return () => ipcRenderer.removeAllListeners("show-about");
   },
-  triggerExportSTL: (): void => {
-    ipcRenderer.emit("export-stl");
+  triggerExportSTL: (fileName?: string): void => {
+    ipcRenderer.emit("export-stl", fileName);
   },
-  saveSTL: (buffer: ArrayBuffer): Promise<boolean> =>
-    ipcRenderer.invoke("cad:save-stl", buffer),
+  saveSTL: (buffer: ArrayBuffer, fileName?: string): Promise<boolean> =>
+    ipcRenderer.invoke("cad:save-stl", buffer, fileName),
 });

@@ -23,10 +23,10 @@ const darkTheme = createTheme({
 });
 
 const defaultParams: TagParams = {
-  width: 1,
-  depth: 1,
-  height: 1,
-  text: "",
+  width: 40,
+  depth: 40,
+  height: 15,
+  text: "tag",
   textHeight: 1,
 };
 
@@ -49,7 +49,14 @@ export default function App() {
           </Box>
           <Stack direction="column" sx={{ width: 300, p: 2, gap: 2 }}>
             <Typography variant="h6">Controls</Typography>
-            <Controls onUpdate={setTagParams} loading={loading} />
+            <Typography variant="body2">
+              All dimensions are in millimeters.
+            </Typography>
+            <Controls
+              onUpdate={setTagParams}
+              defaults={defaultParams}
+              loading={loading}
+            />
           </Stack>
         </Stack>
       </Box>
@@ -58,7 +65,7 @@ export default function App() {
         <DialogContent>
           <Typography>MammalTag v0.1.0</Typography>
           <Typography variant="body2" color="text.secondary">
-            A simple tool for creating custom tags for mammal tracking.
+            A simple tool for creating custom tags for marine mammal tracking.
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Created by Adrian Herbez.

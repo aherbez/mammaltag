@@ -58,17 +58,20 @@ app.whenReady().then(() => {
   registerCadHandlers();
 
   // Handle STL save requests from the renderer
-  ipcMain.handle("cad:save-stl", async (_event, buffer: ArrayBuffer) => {
-    const win = BrowserWindow.getFocusedWindow();
-    const { canceled, filePath } = await dialog.showSaveDialog(win!, {
-      title: "Export as STL",
-      defaultPath: "model.stl",
-      filters: [{ name: "STL", extensions: ["stl"] }],
-    });
-    if (canceled || !filePath) return false;
-    fs.writeFileSync(filePath, Buffer.from(buffer));
-    return true;
-  });
+  ipcMain.handle(
+    "cad:save-stl",
+    async (_event, buffer: ArrayBuffer, fileName?: string) => {
+      const win = BrowserWindow.getFocusedWindow();
+      const { canceled, filePath } = await dialog.showSaveDialog(win!, {
+        title: "Export as STL",
+        defaultPath: fileName ?? "model.stl",
+        filters: [{ name: "STL", extensions: ["stl"] }],
+      });
+      if (canceled || !filePath) return false;
+      fs.writeFileSync(filePath, Buffer.from(buffer));
+      return true;
+    },
+  );
 
   const win = createWindow();
   buildMenu(win);

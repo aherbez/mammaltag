@@ -31,8 +31,8 @@ declare global {
       ) => Promise<MeshData>;
       onExportSTL: (callback: () => void) => () => void;
       onShowAbout: (callback: () => void) => () => void;
-      triggerExportSTL: () => void;
-      saveSTL: (buffer: ArrayBuffer) => Promise<boolean>;
+      triggerExportSTL: (fileName?: string) => void;
+      saveSTL: (buffer: ArrayBuffer, fileName?: string) => Promise<boolean>;
     };
   }
 }
@@ -83,13 +83,13 @@ export default function ThreeCanvas({
 
     async function rebuild() {
       updateLoating(true);
-      const { width, depth, height, text } = tagParams;
+      const { width, depth, height, text, textHeight } = tagParams;
       const meshData = await window.electronAPI.buildTag(
         width,
         depth,
         height,
         text || undefined,
-        tagParams.textHeight || undefined,
+        textHeight || undefined,
       );
       if (cancelled) return;
       group!.clear();
@@ -107,7 +107,7 @@ export default function ThreeCanvas({
         camera.position
           .copy(center)
           .add(
-            new THREE.Vector3(distance * 0.6, distance * 0.4, distance * 0.6),
+            new THREE.Vector3(distance * -0.6, distance * 0.4, distance * 0.6),
           );
         controls.target.copy(center);
         controls.update();
@@ -129,11 +129,14 @@ export default function ThreeCanvas({
     const handleExport = () => {
       const exporter = new STLExporter();
       const result = exporter.parse(group, { binary: true });
-      window.electronAPI.saveSTL(result.buffer as ArrayBuffer);
+      window.electronAPI.saveSTL(
+        result.buffer as ArrayBuffer,
+        `tag_${tagParams.text}.stl`,
+      );
     };
     const cleanup = window.electronAPI.onExportSTL(handleExport);
     return cleanup;
-  }, [group]);
+  }, [group, tagParams]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -155,7 +158,7 @@ export default function ThreeCanvas({
         0.1,
         1000,
       );
-      camera.position.set(2, 1.5, 2);
+      camera.position.set(-2, 1.5, 2);
       camera.lookAt(0.5, 0.5, 0.5);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });

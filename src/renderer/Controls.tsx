@@ -4,15 +4,20 @@ import type { TagParams } from "./ThreeCanvas";
 
 interface ControlsProps {
   onUpdate: (params: TagParams) => void;
+  defaults: TagParams;
   loading?: boolean;
 }
 
-export default function Controls({ onUpdate, loading }: ControlsProps) {
-  const [width, setWidth] = useState(40);
-  const [depth, setDepth] = useState(40);
-  const [height, setHeight] = useState(15);
-  const [textHeight, setTextHeight] = useState(4);
-  const [text, setText] = useState("foo");
+export default function Controls({
+  onUpdate,
+  defaults,
+  loading,
+}: ControlsProps) {
+  const [width, setWidth] = useState(defaults.width);
+  const [depth, setDepth] = useState(defaults.depth);
+  const [height, setHeight] = useState(defaults.height);
+  const [textHeight, setTextHeight] = useState(defaults.textHeight);
+  const [text, setText] = useState(defaults.text);
 
   return (
     <Stack direction="column" spacing={2}>
