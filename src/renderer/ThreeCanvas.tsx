@@ -9,7 +9,6 @@ export interface TagParams {
   height: number;
   text: string;
   textHeight: number;
-  loading: boolean;
 }
 
 interface MeshData {
@@ -62,9 +61,13 @@ function meshDataToThree(data: MeshData): THREE.Mesh {
 
 interface ThreeCanvasProps {
   tagParams: TagParams;
+  updateLoating: (loading: boolean) => void;
 }
 
-export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
+export default function ThreeCanvas({
+  tagParams,
+  updateLoating,
+}: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [group, setGroup] = useState<THREE.Group>();
   const cameraRef = useRef<THREE.PerspectiveCamera>(null);
@@ -77,6 +80,7 @@ export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
     let cancelled = false;
 
     async function rebuild() {
+      updateLoating(true);
       const { width, depth, height, text } = tagParams;
       const meshData = await window.electronAPI.buildTag(
         width,
@@ -98,10 +102,16 @@ export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
         const sphere = box.getBoundingSphere(new THREE.Sphere());
         const fov = camera.fov * (Math.PI / 180);
         const distance = sphere.radius / Math.sin(fov / 2);
-        camera.position.copy(center).add(new THREE.Vector3(distance * 0.6, distance * 0.4, distance * 0.6));
+        camera.position
+          .copy(center)
+          .add(
+            new THREE.Vector3(distance * 0.6, distance * 0.4, distance * 0.6),
+          );
         controls.target.copy(center);
         controls.update();
       }
+
+      updateLoating(false);
     }
 
     rebuild();
