@@ -9,6 +9,7 @@ export interface TagParams {
   height: number;
   text: string;
   textHeight: number;
+  loading: boolean;
 }
 
 interface MeshData {
@@ -66,6 +67,8 @@ interface ThreeCanvasProps {
 export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [group, setGroup] = useState<THREE.Group>();
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
+  const controlsRef = useRef<OrbitControls>(null);
 
   // Rebuild mesh when tagParams change (and group is ready)
   useEffect(() => {
@@ -85,6 +88,20 @@ export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
       if (cancelled) return;
       group!.clear();
       group!.add(meshDataToThree(meshData));
+
+      // Frame the camera on the new object
+      const camera = cameraRef.current;
+      const controls = controlsRef.current;
+      if (camera && controls) {
+        const box = new THREE.Box3().setFromObject(group!);
+        const center = box.getCenter(new THREE.Vector3());
+        const sphere = box.getBoundingSphere(new THREE.Sphere());
+        const fov = camera.fov * (Math.PI / 180);
+        const distance = sphere.radius / Math.sin(fov / 2);
+        camera.position.copy(center).add(new THREE.Vector3(distance * 0.6, distance * 0.4, distance * 0.6));
+        controls.target.copy(center);
+        controls.update();
+      }
     }
 
     rebuild();
@@ -148,6 +165,9 @@ export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
       controls.target.set(0.5, 0.5, 0.5);
       controls.update();
       controlsInstance = controls;
+
+      cameraRef.current = camera;
+      controlsRef.current = controls;
 
       const modelGroup = new THREE.Group();
       scene.add(modelGroup);

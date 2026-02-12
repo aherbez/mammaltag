@@ -1,79 +1,75 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
-import fs from 'fs'
-import path from 'path'
-import { registerCadHandlers } from './cad'
-
+import { app, BrowserWindow, dialog, ipcMain, Menu } from "electron";
+import fs from "fs";
+import path from "path";
+import { registerCadHandlers } from "./cad";
 
 function createWindow(): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 720,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: path.join(__dirname, "../preload/index.js"),
       contextIsolation: true,
-      nodeIntegration: false
-    }
-  })
+      nodeIntegration: false,
+    },
+  });
 
-  if (process.env['ELECTRON_RENDERER_URL']) {
-    win.loadURL(process.env['ELECTRON_RENDERER_URL'])
+  if (process.env["ELECTRON_RENDERER_URL"]) {
+    win.loadURL(process.env["ELECTRON_RENDERER_URL"]);
   } else {
-    win.loadFile(path.join(__dirname, '../renderer/index.html'))
+    win.loadFile(path.join(__dirname, "../renderer/index.html"));
   }
 
-  return win
+  return win;
 }
 
 function buildMenu(win: BrowserWindow): void {
   const template: Electron.MenuItemConstructorOptions[] = [
     {
-      label: 'File',
+      label: "File",
       submenu: [
         {
-          label: 'Export as STL...',
-          accelerator: 'CmdOrCtrl+Shift+E',
-          click: () => win.webContents.send('export-stl')
+          label: "Export as STL...",
+          accelerator: "CmdOrCtrl+Shift+E",
+          click: () => win.webContents.send("export-stl"),
         },
-        { type: 'separator' },
-        { role: 'quit' }
-      ]
+        { type: "separator" },
+        { role: "quit" },
+      ],
     },
-    { role: 'editMenu' },
-    { role: 'viewMenu' },
-    { role: 'windowMenu' }
-  ]
+  ];
 
-  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
 app.whenReady().then(() => {
-  registerCadHandlers()
+  registerCadHandlers();
 
   // Handle STL save requests from the renderer
-  ipcMain.handle('cad:save-stl', async (_event, buffer: ArrayBuffer) => {
-    const win = BrowserWindow.getFocusedWindow()
+  ipcMain.handle("cad:save-stl", async (_event, buffer: ArrayBuffer) => {
+    const win = BrowserWindow.getFocusedWindow();
     const { canceled, filePath } = await dialog.showSaveDialog(win!, {
-      title: 'Export as STL',
-      defaultPath: 'model.stl',
-      filters: [{ name: 'STL', extensions: ['stl'] }]
-    })
-    if (canceled || !filePath) return false
-    fs.writeFileSync(filePath, Buffer.from(buffer))
-    return true
-  })
+      title: "Export as STL",
+      defaultPath: "model.stl",
+      filters: [{ name: "STL", extensions: ["stl"] }],
+    });
+    if (canceled || !filePath) return false;
+    fs.writeFileSync(filePath, Buffer.from(buffer));
+    return true;
+  });
 
-  const win = createWindow()
-  buildMenu(win)
+  const win = createWindow();
+  buildMenu(win);
 
-  app.on('activate', () => {
+  app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
+      createWindow();
     }
-  })
-})
+  });
+});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
   }
-})
+});

@@ -7,11 +7,12 @@ interface ControlsProps {
 }
 
 export default function Controls({ onUpdate }: ControlsProps) {
-  const [width, setWidth] = useState(1);
-  const [depth, setDepth] = useState(1);
-  const [height, setHeight] = useState(1);
-  const [textHeight, setTextHeight] = useState(0.2);
-  const [text, setText] = useState("");
+  const [width, setWidth] = useState(40);
+  const [depth, setDepth] = useState(40);
+  const [height, setHeight] = useState(15);
+  const [textHeight, setTextHeight] = useState(4);
+  const [text, setText] = useState("foo");
+  const [loading, setLoading] = useState(false);
 
   return (
     <Stack direction="column" spacing={2}>
@@ -63,7 +64,9 @@ export default function Controls({ onUpdate }: ControlsProps) {
       />
       <Button
         variant="contained"
-        onClick={() => onUpdate({ width, depth, height, text, textHeight })}
+        onClick={() =>
+          onUpdate({ width, depth, height, text, textHeight, loading: true })
+        }
       >
         Update
       </Button>

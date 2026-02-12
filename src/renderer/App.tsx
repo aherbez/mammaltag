@@ -22,6 +22,7 @@ const defaultParams: TagParams = {
   height: 1,
   text: "",
   textHeight: 1,
+  loading: false,
 };
 
 export default function App() {
