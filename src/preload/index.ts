@@ -9,8 +9,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
     depth: number,
     height: number,
     text?: string,
+    textHeight?: number,
   ): Promise<unknown> =>
-    ipcRenderer.invoke("cad:build-seal-tag", width, depth, height, text),
+    ipcRenderer.invoke(
+      "cad:build-seal-tag",
+      width,
+      depth,
+      height,
+      text,
+      textHeight,
+    ),
   onExportSTL: (callback: () => void): (() => void) => {
     ipcRenderer.removeAllListeners("export-stl");
     ipcRenderer.on("export-stl", callback);

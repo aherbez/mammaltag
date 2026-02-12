@@ -10,6 +10,7 @@ export default function Controls({ onUpdate }: ControlsProps) {
   const [width, setWidth] = useState(1);
   const [depth, setDepth] = useState(1);
   const [height, setHeight] = useState(1);
+  const [textHeight, setTextHeight] = useState(0.2);
   const [text, setText] = useState("");
 
   return (
@@ -50,9 +51,19 @@ export default function Controls({ onUpdate }: ControlsProps) {
         defaultValue={text}
         onChange={(e) => setText(e.target.value)}
       />
+      <TextField
+        label="Text Height"
+        type="number"
+        size="small"
+        defaultValue={textHeight}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (v) setTextHeight(v);
+        }}
+      />
       <Button
         variant="contained"
-        onClick={() => onUpdate({ width, depth, height, text })}
+        onClick={() => onUpdate({ width, depth, height, text, textHeight })}
       >
         Update
       </Button>

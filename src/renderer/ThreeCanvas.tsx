@@ -8,6 +8,7 @@ export interface TagParams {
   depth: number;
   height: number;
   text: string;
+  textHeight: number;
 }
 
 interface MeshData {
@@ -26,6 +27,7 @@ declare global {
         depth: number,
         height: number,
         text?: string,
+        textHeight?: number,
       ) => Promise<MeshData>;
       onExportSTL: (callback: () => void) => () => void;
       saveSTL: (buffer: ArrayBuffer) => Promise<boolean>;
@@ -78,6 +80,7 @@ export default function ThreeCanvas({ tagParams }: ThreeCanvasProps) {
         depth,
         height,
         text || undefined,
+        tagParams.textHeight || undefined,
       );
       if (cancelled) return;
       group!.clear();

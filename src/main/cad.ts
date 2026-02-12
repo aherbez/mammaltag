@@ -2,6 +2,7 @@ import { ipcMain } from "electron";
 import fs from "fs";
 import path from "path";
 import opentype from "opentype.js";
+import { vec3 } from "gl-matrix";
 
 // OpenCascade is loaded once and cached for the lifetime of the process.
 // Uses dynamic import() because the package is ESM ("type": "module").
@@ -112,7 +113,7 @@ interface Pt {
   y: number;
 }
 
-function sampleQuadBezier(p0: Pt, cp: Pt, p1: Pt, n = 8): Pt[] {
+function sampleQuadBezier(p0: Pt, cp: Pt, p1: Pt, n = 4): Pt[] {
   const pts: Pt[] = [];
   for (let i = 1; i <= n; i++) {
     const t = i / n;
@@ -125,7 +126,7 @@ function sampleQuadBezier(p0: Pt, cp: Pt, p1: Pt, n = 8): Pt[] {
   return pts;
 }
 
-function sampleCubicBezier(p0: Pt, c1: Pt, c2: Pt, p1: Pt, n = 8): Pt[] {
+function sampleCubicBezier(p0: Pt, c1: Pt, c2: Pt, p1: Pt, n = 4): Pt[] {
   const pts: Pt[] = [];
   for (let i = 1; i <= n; i++) {
     const t = i / n;
@@ -340,7 +341,14 @@ export function registerCadHandlers(): void {
 
   ipcMain.handle(
     "cad:build-seal-tag",
-    async (_event, width, depth, height, text?: string) => {
+    async (
+      _event,
+      width,
+      depth,
+      height,
+      text?: string,
+      textHeight?: number,
+    ) => {
       const oc = await getOC();
 
       const aPnt1 = new oc.gp_Pnt_3(-width / 2, 0, -depth / 2);
@@ -413,31 +421,103 @@ export function registerCadHandlers(): void {
           const contours = textToContours(text, fontSize);
           console.log("Text contours:", contours.length);
 
-          if (contours.length > 0) {
-            // Place text slightly below y = 0 so the extruded tool cleanly
-            // penetrates the bottom face of the tag body.
-            const offset = 0.1;
-            const engraveDepth = Math.max(height * 0.1, 0.05);
-            const textFaces = contoursToFlatShape(oc, contours, -offset);
+          const frontPoint = vec3.fromValues(0, 0, depth / 2);
+          const topPoint = vec3.fromValues(0, height, 0);
+          const textCenter = vec3.create();
+          vec3.add(textCenter, frontPoint, topPoint);
+          vec3.scale(textCenter, textCenter, 0.5);
 
-            // Extrude upward through the bottom face and into the body
-            const extrudeVec = new oc.gp_Vec_4(0, offset + engraveDepth, 0);
-            const extrudedText = new oc.BRepPrimAPI_MakePrism_1(
+          if (contours.length > 0) {
+            const offset = 0.1;
+            const engraveDepth = textHeight ?? 0.2;
+            const textFaces = contoursToFlatShape(oc, contours, 0);
+
+            // Compute bounding box center of text contours
+            // (font X → OC X, font Y → OC Z)
+            let minX = Infinity,
+              maxX = -Infinity;
+            let minY = Infinity,
+              maxY = -Infinity;
+            for (const contour of contours) {
+              for (const pt of contour) {
+                minX = Math.min(minX, pt.x);
+                maxX = Math.max(maxX, pt.x);
+                minY = Math.min(minY, pt.y);
+                maxY = Math.max(maxY, pt.y);
+              }
+            }
+            const cx = (minX + maxX) / 2;
+            const cy = (minY + maxY) / 2;
+
+            // Slope angle from triangle with base depth/2 and height
+            const slopeAngle = Math.atan2(height, depth / 2);
+
+            // Outward normal of the sloped face
+            const normalLen = Math.hypot(depth / 2, height);
+            const ny = depth / 2 / normalLen;
+            const nz = height / normalLen;
+
+            // Compose center → rotate → translate into a single transform
+            const centerTrsf = new oc.gp_Trsf_1();
+            centerTrsf.SetTranslation_1(new oc.gp_Vec_4(-cx, 0, -cy));
+
+            const rotTrsf = new oc.gp_Trsf_1();
+            rotTrsf.SetRotation_1(
+              new oc.gp_Ax1_2(
+                new oc.gp_Pnt_3(0, 0, 0),
+                new oc.gp_Dir_4(1, 0, 0),
+              ),
+              slopeAngle,
+            );
+
+            const trsf = new oc.gp_Trsf_1();
+            trsf.SetTranslation_1(
+              new oc.gp_Vec_4(
+                textCenter[0],
+                textCenter[1] - ny * offset,
+                textCenter[2] - nz * offset,
+              ),
+            );
+            trsf.Multiply(rotTrsf);
+            trsf.Multiply(centerTrsf);
+
+            const positioned = new oc.BRepBuilderAPI_Transform_2(
               textFaces,
+              trsf,
+              true,
+            );
+
+            // Extrude along outward normal of the sloped face
+            const extrudeVec = new oc.gp_Vec_4(
+              0,
+              ny * (offset + engraveDepth),
+              nz * (offset + engraveDepth),
+            );
+            const extrudedText = new oc.BRepPrimAPI_MakePrism_1(
+              positioned.Shape(),
               extrudeVec,
               false,
               true,
             );
 
+            const textAdd = new oc.BRepAlgoAPI_Fuse_3(
+              myBody,
+              extrudedText.Shape(),
+              new oc.Message_ProgressRange_1(),
+            );
+            textAdd.Build(new oc.Message_ProgressRange_1());
+
+            /*
             const textCut = new oc.BRepAlgoAPI_Cut_3(
               myBody,
               extrudedText.Shape(),
               new oc.Message_ProgressRange_1(),
             );
             textCut.Build(new oc.Message_ProgressRange_1());
+            */
 
-            if (!textCut.HasErrors()) {
-              myBody = textCut.Shape();
+            if (!textAdd.HasErrors()) {
+              myBody = textAdd.Shape();
             } else {
               console.error("Text boolean cut reported errors");
             }

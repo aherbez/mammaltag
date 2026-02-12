@@ -16,7 +16,13 @@ const darkTheme = createTheme({
   },
 });
 
-const defaultParams: TagParams = { width: 1, depth: 1, height: 1, text: "" };
+const defaultParams: TagParams = {
+  width: 1,
+  depth: 1,
+  height: 1,
+  text: "",
+  textHeight: 1,
+};
 
 export default function App() {
   const [tagParams, setTagParams] = useState<TagParams>(defaultParams);
