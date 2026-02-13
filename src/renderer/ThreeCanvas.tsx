@@ -9,6 +9,7 @@ export interface TagParams {
   height: number;
   text: string;
   textHeight: number;
+  filletAmt: number;
 }
 
 interface MeshData {
@@ -26,8 +27,9 @@ declare global {
         width: number,
         depth: number,
         height: number,
-        text?: string,
-        textHeight?: number,
+        text: string,
+        textHeight: number,
+        filletAmt: number,
       ) => Promise<MeshData>;
       onExportSTL: (callback: () => void) => () => void;
       onShowAbout: (callback: () => void) => () => void;
@@ -83,13 +85,14 @@ export default function ThreeCanvas({
 
     async function rebuild() {
       updateLoating(true);
-      const { width, depth, height, text, textHeight } = tagParams;
+      const { width, depth, height, text, textHeight, filletAmt } = tagParams;
       const meshData = await window.electronAPI.buildTag(
         width,
         depth,
         height,
-        text || undefined,
-        textHeight || undefined,
+        text,
+        textHeight,
+        filletAmt,
       );
       if (cancelled) return;
       group!.clear();

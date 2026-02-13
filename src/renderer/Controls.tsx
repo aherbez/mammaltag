@@ -18,6 +18,7 @@ export default function Controls({
   const [height, setHeight] = useState(defaults.height);
   const [textHeight, setTextHeight] = useState(defaults.textHeight);
   const [text, setText] = useState(defaults.text);
+  const [filletAmt, setFilletAmt] = useState(defaults.filletAmt);
 
   return (
     <Stack direction="column" spacing={2}>
@@ -28,7 +29,7 @@ export default function Controls({
         defaultValue={width}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
-          if (v) setWidth(v);
+          if (v >= 5) setWidth(v);
         }}
       />
       <TextField
@@ -38,7 +39,7 @@ export default function Controls({
         defaultValue={depth}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
-          if (v) setDepth(v);
+          if (v >= 5) setDepth(v);
         }}
       />
       <TextField
@@ -48,7 +49,7 @@ export default function Controls({
         defaultValue={height}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
-          if (v) setHeight(v);
+          if (v >= 5) setHeight(v);
         }}
       />
       <TextField
@@ -64,12 +65,24 @@ export default function Controls({
         defaultValue={textHeight}
         onChange={(e) => {
           const v = parseFloat(e.target.value);
-          if (v) setTextHeight(v);
+          if (v >= 0) setTextHeight(v);
+        }}
+      />
+      <TextField
+        label="Edge Roundness"
+        type="number"
+        size="small"
+        defaultValue={filletAmt}
+        onChange={(e) => {
+          const v = parseFloat(e.target.value);
+          if (v >= 0) setFilletAmt(v);
         }}
       />
       <Button
         variant="contained"
-        onClick={() => onUpdate({ width, depth, height, text, textHeight })}
+        onClick={() =>
+          onUpdate({ width, depth, height, text, textHeight, filletAmt })
+        }
       >
         Update
       </Button>

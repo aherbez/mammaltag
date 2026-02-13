@@ -28,6 +28,7 @@ const defaultParams: TagParams = {
   height: 15,
   text: "tag",
   textHeight: 1,
+  filletAmt: 1,
 };
 
 export default function App() {

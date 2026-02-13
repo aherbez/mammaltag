@@ -343,11 +343,12 @@ export function registerCadHandlers(): void {
     "cad:build-seal-tag",
     async (
       _event,
-      width,
-      depth,
-      height,
-      text?: string,
-      textHeight?: number,
+      width: number,
+      depth: number,
+      height: number,
+      text: string,
+      textHeight: number,
+      filletAmt: number,
     ) => {
       const oc = await getOC();
 
@@ -404,13 +405,12 @@ export function registerCadHandlers(): void {
       );
       while (anEdgeExplorer.More()) {
         const anEdge = oc.TopoDS.Edge_1(anEdgeExplorer.Current());
-        mkFillet.Add_2(0.2, anEdge);
+        mkFillet.Add_2(filletAmt, anEdge);
         anEdgeExplorer.Next();
       }
 
       myBody = mkFillet.Shape();
 
-      // --- Engrave text on the bottom face (y = 0) ---
       if (text && text.length > 0) {
         try {
           const fontSize = Math.min(
@@ -419,8 +419,6 @@ export function registerCadHandlers(): void {
           );
 
           const contours = textToContours(text, fontSize);
-          console.log("Text contours:", contours.length);
-
           const frontPoint = vec3.fromValues(0, 0, depth / 2);
           const topPoint = vec3.fromValues(0, height, 0);
           const textCenter = vec3.create();

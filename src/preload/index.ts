@@ -2,14 +2,13 @@ import { contextBridge, ipcRenderer } from "electron";
 
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
-  buildHelloWorld: (): Promise<unknown> =>
-    ipcRenderer.invoke("cad:build-hello-world"),
   buildTag: (
     width: number,
     depth: number,
     height: number,
-    text?: string,
-    textHeight?: number,
+    text: string,
+    textHeight: number,
+    filletAmt: number,
   ): Promise<unknown> =>
     ipcRenderer.invoke(
       "cad:build-seal-tag",
@@ -18,6 +17,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
       height,
       text,
       textHeight,
+      filletAmt,
     ),
   onExportSTL: (callback: () => void): (() => void) => {
     ipcRenderer.removeAllListeners("export-stl");
