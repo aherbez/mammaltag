@@ -8,6 +8,6 @@ Here's an example of the tags in use:
 
 ![seal with hat tag](/docs/hat_tag.png)
 
-Image source (and more information) ![here](https://www.marinemammalcenter.org/news/new-hat-tags-improve-animal-care-while-leading-the-way-toward-a-greener-future)
+Image source (and more information) [here](https://www.marinemammalcenter.org/news/new-hat-tags-improve-animal-care-while-leading-the-way-toward-a-greener-future)
 
 I tend to think that the world needs more hyper-specialized CAD tools
