@@ -36,9 +36,8 @@ I went with webtech + Electron both because I love webtech, but also because it 
 
 ## How to try it
 
-I haven't tested it at all yet outside of my personal machine, but it should be possible to download the repo and do the following:
+I haven't tested it at all yet outside of my personal machine, but as long as you have Node and npm installed, you should be able to:
 
 - Install the dependencies with `npm install`
 - run the application with `npm run dev`
-
 
